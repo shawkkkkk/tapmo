@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@privy-io/react-auth": "latest",
     "next": "latest",
     "react": "latest",
     "react-dom": "latest"

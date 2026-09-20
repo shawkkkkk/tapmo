@@ -6,24 +6,38 @@ Tapmo is an early-stage payments interface designed to make a user's supported F
 
 ## Current status
 
-This repository currently contains a **sandbox UI prototype** only. It does not move funds, issue cards, custody assets, or connect to production payment rails.
+Tapmo currently has **real wallet authentication through Privy** and a sandbox payment UI.
 
-### Prototype flow
+The balance, card number, Apple Wallet action, and transactions are still simulated. Tapmo does not yet move funds, issue cards, custody assets, or connect to production payment rails.
 
-1. Connect a Fomo wallet
-2. Verify the wallet
+### Current prototype flow
+
+1. Authenticate an external EVM wallet with Privy
+2. Read the authenticated wallet address
 3. Display a mock spendable balance
-4. Show a Tapmo virtual card
-5. Display simulated card transactions
+4. Show a sandbox Tapmo virtual card
+5. Display and simulate sandbox card transactions
 
 ## Planned architecture
 
 - **Frontend:** Next.js + TypeScript
 - **Wallet authentication:** Privy
-- **Fomo integration:** adapter layer, mocked until an official integration is available
+- **Fomo integration:** adapter layer, mocked until a supported integration is available
 - **Crypto / stablecoin infrastructure:** Zero Hash, subject to onboarding and supported use case
 - **Card issuing / processing:** regulated card-issuing partner
 - **Digital wallet provisioning:** card issuer + Apple Pay / Google Pay support
+
+## Privy setup
+
+1. Create/select an app in the Privy dashboard.
+2. Copy its **App ID**.
+3. Create a local `.env.local` file:
+
+```bash
+NEXT_PUBLIC_PRIVY_APP_ID=your_privy_app_id
+```
+
+Only the App ID belongs in this client-side variable. Never put Privy secrets, private keys, seed phrases, or other credentials in a `NEXT_PUBLIC_` variable.
 
 ## Development
 
@@ -36,7 +50,7 @@ Then open http://localhost:3000.
 
 ## Environment
 
-Copy `.env.example` to `.env.local` when integrations are added.
+See `.env.example` for planned provider variables. Server-side financial-provider secrets must remain server-only.
 
 ## Important
 

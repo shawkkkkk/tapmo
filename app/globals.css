@@ -615,3 +615,122 @@ footer {
   margin-top: 6px;
   padding-top: 10px;
 }
+
+
+.fomoLinkPanel {
+  margin-top: 22px;
+  width: min(720px, 100%);
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.fomoLinkHeader,
+.fomoLinkFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.fomoLinkHeader strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 14px;
+}
+
+.linkedTag {
+  border: 1px solid #b9d57c;
+  background: #efffd0;
+  border-radius: 999px;
+  padding: 5px 8px;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  white-space: nowrap;
+}
+
+.addressForm {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.addressForm input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #d4d4cf;
+  border-radius: 12px;
+  background: white;
+  color: var(--ink);
+  padding: 12px 13px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  outline: none;
+}
+
+.addressForm input:focus {
+  border-color: #9c9c94;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.04);
+}
+
+.addressForm button {
+  border: 0;
+  border-radius: 12px;
+  background: #111;
+  color: white;
+  padding: 0 15px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.addressError {
+  margin-top: 7px;
+  color: #b54337;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.fomoLinkFooter {
+  margin-top: 10px;
+  align-items: flex-start;
+}
+
+.fomoLinkFooter span {
+  max-width: 520px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.fomoLinkFooter button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #64645f;
+  font-size: 10px;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+  .addressForm {
+    grid-template-columns: 1fr;
+  }
+
+  .addressForm button {
+    min-height: 42px;
+  }
+
+  .fomoLinkHeader,
+  .fomoLinkFooter {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

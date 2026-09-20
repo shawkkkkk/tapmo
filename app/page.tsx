@@ -44,7 +44,30 @@ type Portfolio = {
   updatedAt: string;
 };
 
-const STORAGE_KEY = "tapmo:fomo-evm-address";
+type SolanaAsset = {
+  mint: string;
+  symbol: string;
+  name: string;
+  amount: number;
+  priceUsd: number;
+  usdValue: number;
+  cash: boolean;
+  native: boolean;
+};
+
+type SolanaPortfolio = {
+  address: string;
+  totalUsd: number;
+  cashUsd: number;
+  usdcAmount: number;
+  assets: SolanaAsset[];
+  pricedAssetCount: number;
+  unpricedAssets: number;
+  updatedAt: string;
+};
+
+const EVM_STORAGE_KEY = "tapmo:fomo-evm-address";
+const SOLANA_STORAGE_KEY = "tapmo:fomo-solana-address";
 
 const demoTransactions: Transaction[] = [
   {
@@ -97,6 +120,10 @@ function isEvmAddress(value: string) {
   return /^0x[a-fA-F0-9]{40}$/.test(value.trim());
 }
 
+function isSolanaAddress(value: string) {
+  return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(value.trim());
+}
+
 export default function Home() {
   return <PrivyTapmo />;
 }
@@ -133,20 +160,39 @@ function TapmoDashboard({
   onDisconnect: () => Promise<void>;
 }) {
   const [frozen, setFrozen] = useState(false);
+
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [portfolioLoading, setPortfolioLoading] = useState(false);
   const [portfolioError, setPortfolioError] = useState<string | null>(null);
+
+  const [solanaPortfolio, setSolanaPortfolio] =
+    useState<SolanaPortfolio | null>(null);
+  const [solanaLoading, setSolanaLoading] = useState(false);
+  const [solanaError, setSolanaError] = useState<string | null>(null);
+
   const [linkedFomoAddress, setLinkedFomoAddress] = useState("");
   const [addressDraft, setAddressDraft] = useState("");
   const [addressError, setAddressError] = useState("");
+
+  const [linkedSolanaAddress, setLinkedSolanaAddress] = useState("");
+  const [solanaDraft, setSolanaDraft] = useState("");
+  const [solanaAddressError, setSolanaAddressError] = useState("");
+
   const [storageReady, setStorageReady] = useState(false);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(STORAGE_KEY) || "";
-    if (isEvmAddress(saved)) {
-      setLinkedFomoAddress(saved);
-      setAddressDraft(saved);
+    const savedEvm = window.localStorage.getItem(EVM_STORAGE_KEY) || "";
+    if (isEvmAddress(savedEvm)) {
+      setLinkedFomoAddress(savedEvm);
+      setAddressDraft(savedEvm);
     }
+
+    const savedSolana = window.localStorage.getItem(SOLANA_STORAGE_KEY) || "";
+    if (isSolanaAddress(savedSolana)) {
+      setLinkedSolanaAddress(savedSolana);
+      setSolanaDraft(savedSolana);
+    }
+
     setStorageReady(true);
   }, []);
 
@@ -173,7 +219,7 @@ function TapmoDashboard({
         );
 
         if (!response.ok) {
-          throw new Error("Could not load onchain balances.");
+          throw new Error("Could not load EVM balances.");
         }
 
         const data = (await response.json()) as Portfolio;
@@ -181,7 +227,7 @@ function TapmoDashboard({
       } catch (error) {
         if (controller.signal.aborted) return;
         setPortfolioError(
-          error instanceof Error ? error.message : "Could not load onchain balances."
+          error instanceof Error ? error.message : "Could not load EVM balances."
         );
       } finally {
         if (!controller.signal.aborted) {
@@ -191,11 +237,58 @@ function TapmoDashboard({
     }
 
     void loadPortfolio();
-
     return () => controller.abort();
   }, [connected, portfolioAddress, storageReady]);
 
-  const liveBalance = portfolio?.totalUsd ?? 0;
+  useEffect(() => {
+    if (!connected || !linkedSolanaAddress || !storageReady) {
+      setSolanaPortfolio(null);
+      setSolanaError(null);
+      setSolanaLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+
+    async function loadSolanaPortfolio() {
+      setSolanaLoading(true);
+      setSolanaError(null);
+
+      try {
+        const response = await fetch(
+          `/api/solana/portfolio?address=${encodeURIComponent(linkedSolanaAddress)}`,
+          { signal: controller.signal }
+        );
+
+        const body = await response.json();
+
+        if (!response.ok) {
+          throw new Error(body?.error || "Could not load Solana balances.");
+        }
+
+        setSolanaPortfolio(body as SolanaPortfolio);
+      } catch (error) {
+        if (controller.signal.aborted) return;
+        setSolanaError(
+          error instanceof Error
+            ? error.message
+            : "Could not load Solana balances."
+        );
+      } finally {
+        if (!controller.signal.aborted) {
+          setSolanaLoading(false);
+        }
+      }
+    }
+
+    void loadSolanaPortfolio();
+    return () => controller.abort();
+  }, [connected, linkedSolanaAddress, storageReady]);
+
+  const evmValue = portfolio?.totalUsd ?? 0;
+  const solanaValue = solanaPortfolio?.totalUsd ?? 0;
+  const linkedValue = evmValue + solanaValue;
+  const isLoading = portfolioLoading || solanaLoading;
 
   const cardNumber = connected
     ? "••••  ••••  ••••  4827"
@@ -206,7 +299,7 @@ function TapmoDashboard({
     const working = portfolio.chains
       .filter((chain) => chain.ok)
       .map((chain) => chain.name);
-    return working.length ? working.join(" + ") : "Explorer unavailable";
+    return working.length ? working.join(" + ") : "EVM explorer unavailable";
   }, [portfolio]);
 
   function linkFomoAddress(event: FormEvent<HTMLFormElement>) {
@@ -218,17 +311,39 @@ function TapmoDashboard({
       return;
     }
 
-    window.localStorage.setItem(STORAGE_KEY, normalized);
+    window.localStorage.setItem(EVM_STORAGE_KEY, normalized);
     setLinkedFomoAddress(normalized);
     setAddressDraft(normalized);
     setAddressError("");
   }
 
   function clearFomoAddress() {
-    window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage.removeItem(EVM_STORAGE_KEY);
     setLinkedFomoAddress("");
     setAddressDraft("");
     setAddressError("");
+  }
+
+  function linkSolanaAddress(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const normalized = solanaDraft.trim();
+
+    if (!isSolanaAddress(normalized)) {
+      setSolanaAddressError("Enter a valid Solana public address.");
+      return;
+    }
+
+    window.localStorage.setItem(SOLANA_STORAGE_KEY, normalized);
+    setLinkedSolanaAddress(normalized);
+    setSolanaDraft(normalized);
+    setSolanaAddressError("");
+  }
+
+  function clearSolanaAddress() {
+    window.localStorage.removeItem(SOLANA_STORAGE_KEY);
+    setLinkedSolanaAddress("");
+    setSolanaDraft("");
+    setSolanaAddressError("");
   }
 
   return (
@@ -245,8 +360,8 @@ function TapmoDashboard({
         <div className="eyebrow">FOMO → REAL WORLD</div>
         <h1>Tap your Fomo balance anywhere.</h1>
         <p className="subhead">
-          Authenticate with Privy, link the EVM address shown inside Fomo, and
-          preview the Tapmo card experience.
+          Authenticate with Privy, link the EVM and Solana addresses behind your
+          Fomo account, and preview the Tapmo card experience.
         </p>
 
         {!connected ? (
@@ -270,48 +385,95 @@ function TapmoDashboard({
         )}
 
         {connected && storageReady && (
-          <div className="fomoLinkPanel">
-            <div className="fomoLinkHeader">
-              <div>
-                <span className="label">FOMO EVM ADDRESS</span>
-                <strong>
-                  {linkedFomoAddress
-                    ? shortAddress(linkedFomoAddress)
-                    : "Link the address shown in Fomo"}
-                </strong>
+          <div className="walletLinkGrid">
+            <div className="fomoLinkPanel">
+              <div className="fomoLinkHeader">
+                <div>
+                  <span className="label">FOMO EVM ADDRESS</span>
+                  <strong>
+                    {linkedFomoAddress
+                      ? shortAddress(linkedFomoAddress)
+                      : "Link the EVM address shown in Fomo"}
+                  </strong>
+                </div>
+                {linkedFomoAddress && (
+                  <span className="linkedTag">LINKED · VIEW ONLY</span>
+                )}
               </div>
-              {linkedFomoAddress && (
-                <span className="linkedTag">LINKED · VIEW ONLY</span>
+
+              <form className="addressForm" onSubmit={linkFomoAddress}>
+                <input
+                  value={addressDraft}
+                  onChange={(event) => setAddressDraft(event.target.value)}
+                  placeholder="0x…"
+                  autoComplete="off"
+                  spellCheck={false}
+                  aria-label="Fomo EVM address"
+                />
+                <button type="submit">
+                  {linkedFomoAddress ? "Update" : "Link address"}
+                </button>
+              </form>
+
+              {addressError && (
+                <div className="addressError">{addressError}</div>
               )}
+
+              <div className="fomoLinkFooter">
+                <span>
+                  Reads public ERC-20/native balances only. No spending authority.
+                </span>
+                {linkedFomoAddress && (
+                  <button type="button" onClick={clearFomoAddress}>
+                    Use auth wallet instead
+                  </button>
+                )}
+              </div>
             </div>
 
-            <form className="addressForm" onSubmit={linkFomoAddress}>
-              <input
-                value={addressDraft}
-                onChange={(event) => setAddressDraft(event.target.value)}
-                placeholder="0x…"
-                inputMode="text"
-                autoComplete="off"
-                spellCheck={false}
-                aria-label="Fomo EVM address"
-              />
-              <button type="submit">
-                {linkedFomoAddress ? "Update" : "Link address"}
-              </button>
-            </form>
+            <div className="fomoLinkPanel">
+              <div className="fomoLinkHeader">
+                <div>
+                  <span className="label">FOMO SOLANA ADDRESS</span>
+                  <strong>
+                    {linkedSolanaAddress
+                      ? shortAddress(linkedSolanaAddress)
+                      : "Link the address visible in Jupiter"}
+                  </strong>
+                </div>
+                {linkedSolanaAddress && (
+                  <span className="linkedTag">LINKED · VIEW ONLY</span>
+                )}
+              </div>
 
-            {addressError && <div className="addressError">{addressError}</div>}
-
-            <div className="fomoLinkFooter">
-              <span>
-                This address is used only to read public onchain balances. It
-                does not grant Tapmo spending authority.
-              </span>
-              {linkedFomoAddress && (
-                <button type="button" onClick={clearFomoAddress}>
-                  Use authenticated wallet instead
+              <form className="addressForm" onSubmit={linkSolanaAddress}>
+                <input
+                  value={solanaDraft}
+                  onChange={(event) => setSolanaDraft(event.target.value)}
+                  placeholder="Solana address…"
+                  autoComplete="off"
+                  spellCheck={false}
+                  aria-label="Fomo Solana address"
+                />
+                <button type="submit">
+                  {linkedSolanaAddress ? "Update" : "Link address"}
                 </button>
+              </form>
+
+              {solanaAddressError && (
+                <div className="addressError">{solanaAddressError}</div>
               )}
+
+              <div className="fomoLinkFooter">
+                <span>
+                  Reads public SOL/SPL balances. Native Solana USDC is labeled as cash.
+                </span>
+                {linkedSolanaAddress && (
+                  <button type="button" onClick={clearSolanaAddress}>
+                    Unlink Solana
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -321,46 +483,100 @@ function TapmoDashboard({
         <div className="leftColumn">
           <div className="balancePanel">
             <div>
-              <span className="label">
-                {linkedFomoAddress ? "FOMO EVM ONCHAIN VALUE" : "LIVE ONCHAIN VALUE"}
-              </span>
+              <span className="label">LINKED FOMO ONCHAIN VALUE</span>
               <div className="balance">
                 {!connected
                   ? "$—"
-                  : portfolioLoading
+                  : isLoading
                     ? "Loading…"
-                    : portfolioError
-                      ? "$—"
-                      : money(liveBalance)}
+                    : money(linkedValue)}
               </div>
               {connected && (
                 <div className="balanceMeta">
-                  {portfolioError
-                    ? portfolioError
-                    : portfolioLoading
-                      ? "Reading Base + Robinhood Chain…"
-                      : `${portfolio?.pricedAssetCount ?? 0} priced assets · ${chainStatus}`}
+                  EVM {money(evmValue)} · Solana {money(solanaValue)}
+                  {solanaPortfolio
+                    ? ` · Solana cash ${money(solanaPortfolio.cashUsd)}`
+                    : ""}
                 </div>
               )}
             </div>
             <div className="status">
-              <span className={portfolioError ? "dot dotError" : "dot"} />
+              <span
+                className={portfolioError && solanaError ? "dot dotError" : "dot"}
+              />
               {!connected
                 ? "Connect wallet"
-                : portfolioLoading
+                : isLoading
                   ? "Syncing"
-                  : portfolioError
-                    ? "Data unavailable"
-                    : linkedFomoAddress
-                      ? "Fomo address"
-                      : "Auth wallet"}
+                  : portfolioError || solanaError
+                    ? "Partial data"
+                    : "Live data"}
             </div>
           </div>
 
-          {connected && !portfolioLoading && !portfolioError && portfolio && (
+          {connected && linkedSolanaAddress && (
             <div className="portfolioBreakdown">
               <div className="portfolioHeader">
-                <span className="label">TOP HOLDINGS</span>
+                <span className="label">SOLANA / JUPITER SIDE</span>
+                <span className="liveTag">LIVE</span>
+              </div>
+
+              {solanaLoading ? (
+                <div className="noAssets">Reading Solana balances…</div>
+              ) : solanaError ? (
+                <div className="portfolioNote">{solanaError}</div>
+              ) : solanaPortfolio ? (
+                <>
+                  <div className="cashCallout">
+                    <div>
+                      <span>USDC CASH</span>
+                      <strong>{money(solanaPortfolio.cashUsd)}</strong>
+                    </div>
+                    <small>{tokenAmount(solanaPortfolio.usdcAmount)} USDC</small>
+                  </div>
+
+                  {solanaPortfolio.assets.length ? (
+                    <div className="assetList">
+                      {solanaPortfolio.assets.slice(0, 5).map((asset) => (
+                        <div className="assetRow" key={asset.mint}>
+                          <div className="assetIcon">
+                            {(asset.symbol || "?").slice(0, 1).toUpperCase()}
+                          </div>
+                          <div className="assetName">
+                            <strong>
+                              {asset.symbol}
+                              {asset.cash ? " · CASH" : ""}
+                            </strong>
+                            <span>Solana · {tokenAmount(asset.amount)}</span>
+                          </div>
+                          <div className="assetValue">
+                            {asset.priceUsd > 0 ? money(asset.usdValue) : "Unpriced"}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="noAssets">
+                      No SOL or SPL balances found at this address.
+                    </div>
+                  )}
+
+                  {solanaPortfolio.unpricedAssets > 0 && (
+                    <div className="portfolioNote">
+                      {solanaPortfolio.unpricedAssets} Solana asset
+                      {solanaPortfolio.unpricedAssets === 1 ? "" : "s"} could
+                      not be priced and are excluded from the USD total.
+                    </div>
+                  )}
+                </>
+              ) : null}
+            </div>
+          )}
+
+          {connected && portfolio && (
+            <div className="portfolioBreakdown">
+              <div className="portfolioHeader">
+                <span className="label">EVM SIDE</span>
                 <span className="liveTag">LIVE</span>
               </div>
 
@@ -376,9 +592,7 @@ function TapmoDashboard({
                       </div>
                       <div className="assetName">
                         <strong>{asset.symbol}</strong>
-                        <span>
-                          {asset.chain} · {tokenAmount(asset.amount)}
-                        </span>
+                        <span>{asset.chain} · {tokenAmount(asset.amount)}</span>
                       </div>
                       <div className="assetValue">{money(asset.usdValue)}</div>
                     </div>
@@ -386,21 +600,16 @@ function TapmoDashboard({
                 </div>
               ) : (
                 <div className="noAssets">
-                  No priced ERC-20 or native balances found on Base or Robinhood Chain.
+                  No priced ERC-20/native balances found on Base or Robinhood Chain.
                 </div>
               )}
 
-              {(portfolio.unpricedAssets > 0 ||
-                portfolio.chains.some((chain) => !chain.ok)) && (
-                <div className="portfolioNote">
-                  {portfolio.unpricedAssets > 0
-                    ? `${portfolio.unpricedAssets} additional asset${portfolio.unpricedAssets === 1 ? "" : "s"} had no USD price and were excluded. `
-                    : ""}
-                  {portfolio.chains.some((chain) => !chain.ok)
-                    ? "At least one network explorer did not respond, so this may be a partial total."
-                    : ""}
-                </div>
-              )}
+              <div className="portfolioNote">
+                {portfolio.pricedAssetCount} priced EVM assets · {chainStatus}
+                {portfolio.unpricedAssets > 0
+                  ? ` · ${portfolio.unpricedAssets} unpriced`
+                  : ""}
+              </div>
             </div>
           )}
 
@@ -414,11 +623,13 @@ function TapmoDashboard({
 
             <div className="cardBottom">
               <div>
-                <span>FOMO WALLET</span>
+                <span>FOMO ACCOUNT</span>
                 <strong>
-                  {connected
-                    ? shortAddress(linkedFomoAddress || walletAddress).toUpperCase()
-                    : "—"}
+                  {linkedSolanaAddress
+                    ? "EVM + SOLANA"
+                    : connected
+                      ? shortAddress(linkedFomoAddress || walletAddress).toUpperCase()
+                      : "—"}
                 </strong>
               </div>
               <div>
@@ -476,7 +687,7 @@ function TapmoDashboard({
                 <div>
                   <strong>Card rail is still simulated</strong>
                   <span>
-                    This demo tap does not move or subtract from your real wallet balance.
+                    Demo taps never move or subtract from linked wallet balances.
                   </span>
                 </div>
                 <button disabled={frozen}>Simulate tap</button>
@@ -496,16 +707,16 @@ function TapmoDashboard({
           <span className="step">02</span>
           <h3>Link Fomo</h3>
           <p>
-            Link the public EVM address shown in Fomo so Tapmo can read its
-            supported onchain holdings.
+            Tapmo reads the Fomo EVM and Solana addresses separately and
+            combines their priced public holdings.
           </p>
         </div>
         <div>
           <span className="step">03</span>
           <h3>Tap</h3>
           <p>
-            The payment card remains sandboxed until regulated off-ramp and card
-            issuance integrations are connected.
+            Card payments stay sandboxed until the authorized Fomo, Zero Hash,
+            and card-issuer rails are connected.
           </p>
         </div>
       </section>
@@ -513,7 +724,7 @@ function TapmoDashboard({
       <footer>
         <span>Tapmo · Beta</span>
         <span>
-          Wallet authentication + supported onchain balances are live. Card activity is simulated.
+          Linked wallet balances are read-only. Card activity is simulated.
         </span>
       </footer>
     </main>

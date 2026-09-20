@@ -12,10 +12,10 @@ export default function TapmoPrivyProvider({
     <PrivyProvider
       appId={TAPMO_PRIVY_APP_ID}
       config={{
-        loginMethods: ["wallet"],
+        loginMethods: ["email", "wallet"],
         appearance: {
           theme: "light",
-          showWalletLoginFirst: true,
+          showWalletLoginFirst: false,
         },
       }}
     >

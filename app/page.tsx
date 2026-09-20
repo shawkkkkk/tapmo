@@ -56,15 +56,15 @@ export default function Home() {
 
 function PrivyTapmo() {
   const { ready, authenticated, login, logout } = usePrivy();
-  const { wallets } = useWallets();
+  const { ready: walletsReady, wallets } = useWallets();
   const walletAddress = wallets[0]?.address;
 
-  const connected = ready && authenticated && Boolean(walletAddress);
+  const connected = ready && walletsReady && authenticated && Boolean(walletAddress);
 
   return (
     <TapmoDashboard
       connected={connected}
-      authReady={ready}
+      authReady={ready && walletsReady}
       walletAddress={walletAddress}
       onConnect={login}
       onDisconnect={logout}

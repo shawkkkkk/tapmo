@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { usePrivy, useWallets } from "@privy-io/react-auth";
 
 type Transaction = {
@@ -43,6 +43,8 @@ type Portfolio = {
   scope: string[];
   updatedAt: string;
 };
+
+const STORAGE_KEY = "tapmo:fomo-evm-address";
 
 const demoTransactions: Transaction[] = [
   {
@@ -91,6 +93,10 @@ function shortAddress(address?: string) {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
+function isEvmAddress(value: string) {
+  return /^0x[a-fA-F0-9]{40}$/.test(value.trim());
+}
+
 export default function Home() {
   return <PrivyTapmo />;
 }
@@ -130,9 +136,24 @@ function TapmoDashboard({
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [portfolioLoading, setPortfolioLoading] = useState(false);
   const [portfolioError, setPortfolioError] = useState<string | null>(null);
+  const [linkedFomoAddress, setLinkedFomoAddress] = useState("");
+  const [addressDraft, setAddressDraft] = useState("");
+  const [addressError, setAddressError] = useState("");
+  const [storageReady, setStorageReady] = useState(false);
 
   useEffect(() => {
-    if (!connected || !walletAddress) {
+    const saved = window.localStorage.getItem(STORAGE_KEY) || "";
+    if (isEvmAddress(saved)) {
+      setLinkedFomoAddress(saved);
+      setAddressDraft(saved);
+    }
+    setStorageReady(true);
+  }, []);
+
+  const portfolioAddress = linkedFomoAddress || walletAddress || "";
+
+  useEffect(() => {
+    if (!connected || !portfolioAddress || !storageReady) {
       setPortfolio(null);
       setPortfolioError(null);
       setPortfolioLoading(false);
@@ -147,7 +168,7 @@ function TapmoDashboard({
 
       try {
         const response = await fetch(
-          `/api/onchain/portfolio?address=${encodeURIComponent(walletAddress!)}`,
+          `/api/onchain/portfolio?address=${encodeURIComponent(portfolioAddress)}`,
           { signal: controller.signal }
         );
 
@@ -172,7 +193,7 @@ function TapmoDashboard({
     void loadPortfolio();
 
     return () => controller.abort();
-  }, [connected, walletAddress]);
+  }, [connected, portfolioAddress, storageReady]);
 
   const liveBalance = portfolio?.totalUsd ?? 0;
 
@@ -182,9 +203,33 @@ function TapmoDashboard({
 
   const chainStatus = useMemo(() => {
     if (!portfolio) return "";
-    const working = portfolio.chains.filter((chain) => chain.ok).map((chain) => chain.name);
+    const working = portfolio.chains
+      .filter((chain) => chain.ok)
+      .map((chain) => chain.name);
     return working.length ? working.join(" + ") : "Explorer unavailable";
   }, [portfolio]);
+
+  function linkFomoAddress(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const normalized = addressDraft.trim();
+
+    if (!isEvmAddress(normalized)) {
+      setAddressError("Enter a valid 0x EVM address.");
+      return;
+    }
+
+    window.localStorage.setItem(STORAGE_KEY, normalized);
+    setLinkedFomoAddress(normalized);
+    setAddressDraft(normalized);
+    setAddressError("");
+  }
+
+  function clearFomoAddress() {
+    window.localStorage.removeItem(STORAGE_KEY);
+    setLinkedFomoAddress("");
+    setAddressDraft("");
+    setAddressError("");
+  }
 
   return (
     <main>
@@ -200,8 +245,8 @@ function TapmoDashboard({
         <div className="eyebrow">FOMO → REAL WORLD</div>
         <h1>Tap your Fomo balance anywhere.</h1>
         <p className="subhead">
-          Authenticate your wallet, see its live onchain value on supported
-          networks, and preview the Tapmo card experience.
+          Authenticate with Privy, link the EVM address shown inside Fomo, and
+          preview the Tapmo card experience.
         </p>
 
         {!connected ? (
@@ -210,17 +255,64 @@ function TapmoDashboard({
             onClick={onConnect}
             disabled={!authReady}
           >
-            {authReady ? "Connect Fomo Wallet" : "Loading wallet login…"}
+            {authReady ? "Connect wallet" : "Loading wallet login…"}
           </button>
         ) : (
           <div className="walletControls">
             <div className="connectedPill">
               <span className="dot" />
-              Wallet authenticated · {shortAddress(walletAddress)}
+              Authenticated · {shortAddress(walletAddress)}
             </div>
             <button className="textButton" onClick={() => void onDisconnect()}>
               Disconnect
             </button>
+          </div>
+        )}
+
+        {connected && storageReady && (
+          <div className="fomoLinkPanel">
+            <div className="fomoLinkHeader">
+              <div>
+                <span className="label">FOMO EVM ADDRESS</span>
+                <strong>
+                  {linkedFomoAddress
+                    ? shortAddress(linkedFomoAddress)
+                    : "Link the address shown in Fomo"}
+                </strong>
+              </div>
+              {linkedFomoAddress && (
+                <span className="linkedTag">LINKED · VIEW ONLY</span>
+              )}
+            </div>
+
+            <form className="addressForm" onSubmit={linkFomoAddress}>
+              <input
+                value={addressDraft}
+                onChange={(event) => setAddressDraft(event.target.value)}
+                placeholder="0x…"
+                inputMode="text"
+                autoComplete="off"
+                spellCheck={false}
+                aria-label="Fomo EVM address"
+              />
+              <button type="submit">
+                {linkedFomoAddress ? "Update" : "Link address"}
+              </button>
+            </form>
+
+            {addressError && <div className="addressError">{addressError}</div>}
+
+            <div className="fomoLinkFooter">
+              <span>
+                This address is used only to read public onchain balances. It
+                does not grant Tapmo spending authority.
+              </span>
+              {linkedFomoAddress && (
+                <button type="button" onClick={clearFomoAddress}>
+                  Use authenticated wallet instead
+                </button>
+              )}
+            </div>
           </div>
         )}
       </section>
@@ -229,7 +321,9 @@ function TapmoDashboard({
         <div className="leftColumn">
           <div className="balancePanel">
             <div>
-              <span className="label">LIVE ONCHAIN VALUE</span>
+              <span className="label">
+                {linkedFomoAddress ? "FOMO EVM ONCHAIN VALUE" : "LIVE ONCHAIN VALUE"}
+              </span>
               <div className="balance">
                 {!connected
                   ? "$—"
@@ -257,7 +351,9 @@ function TapmoDashboard({
                   ? "Syncing"
                   : portfolioError
                     ? "Data unavailable"
-                    : "Live data"}
+                    : linkedFomoAddress
+                      ? "Fomo address"
+                      : "Auth wallet"}
             </div>
           </div>
 
@@ -280,7 +376,9 @@ function TapmoDashboard({
                       </div>
                       <div className="assetName">
                         <strong>{asset.symbol}</strong>
-                        <span>{asset.chain} · {tokenAmount(asset.amount)}</span>
+                        <span>
+                          {asset.chain} · {tokenAmount(asset.amount)}
+                        </span>
                       </div>
                       <div className="assetValue">{money(asset.usdValue)}</div>
                     </div>
@@ -292,7 +390,8 @@ function TapmoDashboard({
                 </div>
               )}
 
-              {(portfolio.unpricedAssets > 0 || portfolio.chains.some((chain) => !chain.ok)) && (
+              {(portfolio.unpricedAssets > 0 ||
+                portfolio.chains.some((chain) => !chain.ok)) && (
                 <div className="portfolioNote">
                   {portfolio.unpricedAssets > 0
                     ? `${portfolio.unpricedAssets} additional asset${portfolio.unpricedAssets === 1 ? "" : "s"} had no USD price and were excluded. `
@@ -315,8 +414,12 @@ function TapmoDashboard({
 
             <div className="cardBottom">
               <div>
-                <span>WALLET</span>
-                <strong>{connected ? shortAddress(walletAddress).toUpperCase() : "—"}</strong>
+                <span>FOMO WALLET</span>
+                <strong>
+                  {connected
+                    ? shortAddress(linkedFomoAddress || walletAddress).toUpperCase()
+                    : "—"}
+                </strong>
               </div>
               <div>
                 <span>STATUS</span>
@@ -386,15 +489,15 @@ function TapmoDashboard({
       <section className="how">
         <div>
           <span className="step">01</span>
-          <h3>Connect</h3>
-          <p>Privy authenticates control of the wallet you connect to Tapmo.</p>
+          <h3>Authenticate</h3>
+          <p>Privy authenticates the person using Tapmo.</p>
         </div>
         <div>
           <span className="step">02</span>
-          <h3>Read</h3>
+          <h3>Link Fomo</h3>
           <p>
-            Tapmo now reads priced onchain holdings from Base and Robinhood Chain
-            and calculates their current USD value.
+            Link the public EVM address shown in Fomo so Tapmo can read its
+            supported onchain holdings.
           </p>
         </div>
         <div>

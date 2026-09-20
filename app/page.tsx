@@ -47,10 +47,6 @@ function shortAddress(address?: string) {
 }
 
 export default function Home() {
-  if (!privyConfigured) {
-    return <MissingPrivyConfig />;
-  }
-
   return <PrivyTapmo />;
 }
 
@@ -69,39 +65,6 @@ function PrivyTapmo() {
       onConnect={login}
       onDisconnect={logout}
     />
-  );
-}
-
-function MissingPrivyConfig() {
-  return (
-    <main>
-      <nav className="nav">
-        <div className="brand">
-          <span className="brandMark">T</span>
-          <span>tapmo</span>
-        </div>
-        <span className="beta">BETA</span>
-      </nav>
-
-      <section className="hero">
-        <div className="eyebrow">PRIVY SETUP REQUIRED</div>
-        <h1>Connect Tapmo to Privy.</h1>
-        <p className="subhead">
-          The wallet integration is installed. Add your Privy App ID as
-          NEXT_PUBLIC_PRIVY_APP_ID to enable real wallet authentication.
-        </p>
-
-        <div className="setupNotice">
-          <strong>Wallet auth code is ready.</strong>
-          <span>No private key, seed phrase, or wallet secret belongs in this field.</span>
-        </div>
-      </section>
-
-      <footer>
-        <span>Tapmo · Sandbox prototype</span>
-        <span>Privy App ID required to enable wallet login.</span>
-      </footer>
-    </main>
   );
 }
 

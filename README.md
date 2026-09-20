@@ -8,7 +8,7 @@ Tapmo is an early-stage payments interface designed to make supported onchain ba
 
 Tapmo currently has:
 
-- **Real wallet authentication through Privy**
+- **Privy authentication with email or external wallet**
 - **Live onchain portfolio valuation for Base and Robinhood Chain**
 - A **sandbox-only** virtual-card and transaction UI
 
@@ -18,7 +18,7 @@ The live balance shown today is **not the official Fomo unified balance**. It is
 
 ### Current prototype flow
 
-1. Authenticate an external EVM wallet with Privy
+1. Sign in with Privy using email or an external wallet
 2. Read the authenticated wallet address
 3. Query Base + Robinhood Chain through Blockscout
 4. Calculate a live USD total from priced holdings

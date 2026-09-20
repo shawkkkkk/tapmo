@@ -513,3 +513,105 @@ footer {
   font-size: 12px;
   line-height: 1.5;
 }
+
+
+.balanceMeta {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.dotError {
+  background: #e06d5f;
+  box-shadow: 0 0 0 4px rgba(224, 109, 95, 0.12);
+}
+
+.portfolioBreakdown {
+  margin: -6px 0 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255,255,255,.72);
+}
+
+.portfolioHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.liveTag {
+  border: 1px solid #b9d57c;
+  background: #efffd0;
+  border-radius: 999px;
+  padding: 4px 7px;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+.assetList {
+  display: flex;
+  flex-direction: column;
+}
+
+.assetRow {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 11px 0;
+  border-bottom: 1px solid #ecece7;
+}
+
+.assetRow:last-child {
+  border-bottom: 0;
+}
+
+.assetIcon {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #111;
+  color: white;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.assetName {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.assetName strong,
+.assetValue {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.assetName span,
+.noAssets,
+.portfolioNote {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.assetValue {
+  text-align: right;
+}
+
+.noAssets {
+  padding: 12px 0 4px;
+}
+
+.portfolioNote {
+  border-top: 1px solid #ecece7;
+  margin-top: 6px;
+  padding-top: 10px;
+}

@@ -87,3 +87,34 @@ ZERO_HASH_PASSPHRASE=
 Do **not** expose these values with a `NEXT_PUBLIC_` prefix.
 
 Zero Hash requires authenticated Cert/Prod traffic to originate from an allowlisted static IP. A normal dynamic residential IP, and ordinary serverless egress without fixed outbound IPs, should not be treated as sufficient for authenticated integration. Keep Tapmo in Cert until platform onboarding, compliance review, and payment-flow approval are complete.
+
+
+## Marqeta sandbox
+
+Tapmo now includes a server-only Marqeta Core API adapter at `lib/marqeta.ts`.
+
+Diagnostic endpoint:
+
+```
+GET /api/marqeta/status
+```
+
+Sandbox bootstrap endpoint:
+
+```
+POST /api/marqeta/bootstrap
+```
+
+The bootstrap endpoint looks up an active sandbox card product, creates a Tapmo sandbox user, and issues a sandbox card for that user. It does not expose PAN, CVC, or other sensitive card data in the response.
+
+Required server-only environment variables:
+
+```bash
+MARQETA_BASE_URL=https://sandbox-api.marqeta.com/v3
+MARQETA_APPLICATION_TOKEN=
+MARQETA_ADMIN_ACCESS_TOKEN=
+```
+
+Marqeta sandbox uses HTTP Basic Authentication with the application token as the username and the admin access token as the password. Keep both values server-side and never prefix them with `NEXT_PUBLIC_`.
+
+Cards created in Marqeta sandbox cannot be used for real-world purchases. They are only for testing card issuance and simulated authorization flows.

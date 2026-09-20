@@ -139,7 +139,7 @@ function PrivyTapmo() {
   const { wallets } = useWallets();
   const walletAddress = wallets[0]?.address;
 
-  const connected = ready && authenticated && Boolean(walletAddress);
+  const connected = ready && authenticated;
 
   return (
     <TapmoDashboard
@@ -399,7 +399,7 @@ function TapmoDashboard({
         <div className="eyebrow">FOMO → REAL WORLD</div>
         <h1>Tap your Fomo balance anywhere.</h1>
         <p className="subhead">
-          Authenticate with Privy, link the EVM and Solana addresses behind your
+          Sign in with Privy, link the EVM and Solana addresses behind your
           Fomo account, and preview the Tapmo card experience.
         </p>
 
@@ -409,13 +409,13 @@ function TapmoDashboard({
             onClick={onConnect}
             disabled={!authReady}
           >
-            {authReady ? "Connect wallet" : "Loading wallet login…"}
+            {authReady ? "Sign in to Tapmo" : "Loading sign-in…"}
           </button>
         ) : (
           <div className="walletControls">
             <div className="connectedPill">
               <span className="dot" />
-              Authenticated · {shortAddress(walletAddress)}
+              Authenticated{walletAddress ? ` · ${shortAddress(walletAddress)}` : ""}
             </div>
             <button className="textButton" onClick={() => void onDisconnect()}>
               Disconnect
@@ -668,9 +668,11 @@ function TapmoDashboard({
                 <strong>
                   {linkedSolanaAddress
                     ? "EVM + SOLANA"
-                    : connected
-                      ? shortAddress(linkedFomoAddress || walletAddress).toUpperCase()
-                      : "—"}
+                    : linkedFomoAddress
+                    ? shortAddress(linkedFomoAddress).toUpperCase()
+                    : walletAddress
+                      ? shortAddress(walletAddress).toUpperCase()
+                      : "LINK FOMO"
                 </strong>
               </div>
               <div>
@@ -729,7 +731,7 @@ function TapmoDashboard({
 
           {!connected ? (
             <div className="emptyState">
-              Authenticate your wallet to preview Tapmo activity.
+              Sign in to preview Tapmo activity.
             </div>
           ) : (
             <>
@@ -764,7 +766,7 @@ function TapmoDashboard({
         <div>
           <span className="step">01</span>
           <h3>Authenticate</h3>
-          <p>Privy authenticates the person using Tapmo.</p>
+          <p>Privy lets users sign in with email or an external wallet.</p>
         </div>
         <div>
           <span className="step">02</span>

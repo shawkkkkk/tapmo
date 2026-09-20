@@ -29,15 +29,15 @@ The balance, card number, Apple Wallet action, and transactions are still simula
 
 ## Privy setup
 
-1. Create/select an app in the Privy dashboard.
-2. Copy its **App ID**.
-3. Create a local `.env.local` file:
+The development Privy App ID is configured in `lib/privy-config.ts`, so wallet authentication can run immediately.
+
+You can override it per environment with:
 
 ```bash
 NEXT_PUBLIC_PRIVY_APP_ID=your_privy_app_id
 ```
 
-Only the App ID belongs in this client-side variable. Never put Privy secrets, private keys, seed phrases, or other credentials in a `NEXT_PUBLIC_` variable.
+Privy's App ID is public client configuration. Never put Privy secrets, private keys, seed phrases, or other credentials in a `NEXT_PUBLIC_` variable.
 
 ## Development
 

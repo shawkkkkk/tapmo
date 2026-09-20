@@ -118,3 +118,25 @@ MARQETA_ADMIN_ACCESS_TOKEN=
 Marqeta sandbox uses HTTP Basic Authentication with the application token as the username and the admin access token as the password. Keep both values server-side and never prefix them with `NEXT_PUBLIC_`.
 
 Cards created in Marqeta sandbox cannot be used for real-world purchases. They are only for testing card issuance and simulated authorization flows.
+
+
+## Solana / Jupiter-side Fomo balance
+
+Tapmo can now link a separate Solana public address in addition to the Fomo EVM address.
+
+The server route:
+
+```
+GET /api/solana/portfolio?address=<solana_pubkey>
+```
+
+uses Solana JSON-RPC to enumerate native SOL and SPL token balances. It prices supported mints with Jupiter Price V3 and specifically identifies Circle's native Solana USDC mint as cash. The UI sums priced Solana holdings with the EVM-side portfolio while keeping both sources visibly separate.
+
+Optional server configuration:
+
+```bash
+SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
+JUPITER_API_KEY=
+```
+
+If `JUPITER_API_KEY` is omitted, the beta attempts Jupiter's lite price endpoint. A dedicated Solana RPC provider is recommended for production because the public RPC is rate-limited.

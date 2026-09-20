@@ -2,34 +2,46 @@
 
 **Tap your Fomo balance anywhere.**
 
-Tapmo is an early-stage payments interface designed to make a user's supported Fomo wallet balance feel spendable in the real world.
+Tapmo is an early-stage payments interface designed to make supported onchain balances feel spendable in the real world.
 
 ## Current status
 
-Tapmo currently has **real wallet authentication through Privy** and a sandbox payment UI.
+Tapmo currently has:
 
-The balance, card number, Apple Wallet action, and transactions are still simulated. Tapmo does not yet move funds, issue cards, custody assets, or connect to production payment rails.
+- **Real wallet authentication through Privy**
+- **Live onchain portfolio valuation for Base and Robinhood Chain**
+- A **sandbox-only** virtual-card and transaction UI
+
+Tapmo does not yet issue a real card, move funds, custody assets, or connect to production off-ramp/card rails.
+
+The live balance shown today is **not the official Fomo unified balance**. It is the current USD value of priced native/ERC-20 holdings discovered for the authenticated EVM address on Base and Robinhood Chain. Tokens without a reliable exchange rate are excluded from the displayed USD total.
 
 ### Current prototype flow
 
 1. Authenticate an external EVM wallet with Privy
 2. Read the authenticated wallet address
-3. Display a mock spendable balance
-4. Show a sandbox Tapmo virtual card
-5. Display and simulate sandbox card transactions
+3. Query Base + Robinhood Chain through Blockscout
+4. Calculate a live USD total from priced holdings
+5. Show a sandbox Tapmo virtual card
+6. Preview simulated card transactions without moving real funds
+
+## Data sources
+
+Tapmo's `/api/onchain/portfolio` route queries public Blockscout explorer APIs server-side. No Blockscout key is currently required for the two instance endpoints used by this beta.
 
 ## Planned architecture
 
 - **Frontend:** Next.js + TypeScript
 - **Wallet authentication:** Privy
-- **Fomo integration:** adapter layer, mocked until a supported integration is available
+- **Fomo integration:** adapter layer, pending an official supported Fomo integration
+- **Onchain balance discovery:** Blockscout (beta)
 - **Crypto / stablecoin infrastructure:** Zero Hash, subject to onboarding and supported use case
 - **Card issuing / processing:** regulated card-issuing partner
 - **Digital wallet provisioning:** card issuer + Apple Pay / Google Pay support
 
 ## Privy setup
 
-The development Privy App ID is configured in `lib/privy-config.ts`, so wallet authentication can run immediately.
+The development Privy App ID is configured in `lib/privy-config.ts`.
 
 You can override it per environment with:
 
@@ -47,10 +59,6 @@ npm run dev
 ```
 
 Then open http://localhost:3000.
-
-## Environment
-
-See `.env.example` for planned provider variables. Server-side financial-provider secrets must remain server-only.
 
 ## Important
 

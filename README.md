@@ -12,7 +12,7 @@ Tapmo currently has:
 - **Live onchain portfolio valuation for Base and Robinhood Chain**
 - A **sandbox-only** virtual-card and transaction UI
 
-Tapmo does not yet issue a real card, move funds, custody assets, or connect to production off-ramp/card rails.
+Tapmo does not yet issue a real card, move funds, or custody assets. A server-side Zero Hash Cert adapter is now scaffolded, but authenticated Cert access still requires Zero Hash to provision Tapmo as a Platform and allowlist a static outbound IP.
 
 The live balance shown today is **not the official Fomo unified balance**. It is the current USD value of priced native/ERC-20 holdings discovered for the authenticated EVM address on Base and Robinhood Chain. Tokens without a reliable exchange rate are excluded from the displayed USD total.
 
@@ -35,7 +35,7 @@ Tapmo's `/api/onchain/portfolio` route queries public Blockscout explorer APIs s
 - **Wallet authentication:** Privy
 - **Fomo integration:** adapter layer, pending an official supported Fomo integration
 - **Onchain balance discovery:** Blockscout (beta)
-- **Crypto / stablecoin infrastructure:** Zero Hash, subject to onboarding and supported use case
+- **Crypto / stablecoin infrastructure:** Zero Hash Cert adapter scaffolded; Platform provisioning + static-IP allowlisting still required
 - **Card issuing / processing:** regulated card-issuing partner
 - **Digital wallet provisioning:** card issuer + Apple Pay / Google Pay support
 
@@ -63,3 +63,27 @@ Then open http://localhost:3000.
 ## Important
 
 Never commit API secrets, private keys, wallet seed phrases, card data, or production credentials to this repository.
+
+
+## Zero Hash Cert
+
+Tapmo includes a server-only Zero Hash adapter at `lib/zerohash.ts` and a diagnostic endpoint at:
+
+```
+GET /api/zerohash/status
+```
+
+The diagnostic endpoint always attempts Zero Hash's unauthenticated `GET /time` connectivity check. If all three Cert credentials are configured, it also performs a signed authentication check without returning participant data.
+
+Required server-only variables:
+
+```bash
+ZERO_HASH_ENV=cert
+ZERO_HASH_API_KEY=
+ZERO_HASH_API_SECRET=
+ZERO_HASH_PASSPHRASE=
+```
+
+Do **not** expose these values with a `NEXT_PUBLIC_` prefix.
+
+Zero Hash requires authenticated Cert/Prod traffic to originate from an allowlisted static IP. A normal dynamic residential IP, and ordinary serverless egress without fixed outbound IPs, should not be treated as sufficient for authenticated integration. Keep Tapmo in Cert until platform onboarding, compliance review, and payment-flow approval are complete.

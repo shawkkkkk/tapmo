@@ -471,3 +471,45 @@ footer {
     padding-top: 12px;
   }
 }
+
+
+.walletControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.textButton {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: #686862;
+  padding: 10px 4px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.setupNotice {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 620px;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.setupNotice strong {
+  font-size: 14px;
+}
+
+.setupNotice span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}

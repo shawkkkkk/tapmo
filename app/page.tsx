@@ -66,6 +66,12 @@ type SolanaPortfolio = {
   updatedAt: string;
 };
 
+type SandboxCard = {
+  token: string | null;
+  lastFour: string | null;
+  state: string | null;
+};
+
 const EVM_STORAGE_KEY = "tapmo:fomo-evm-address";
 const SOLANA_STORAGE_KEY = "tapmo:fomo-solana-address";
 
@@ -180,6 +186,10 @@ function TapmoDashboard({
 
   const [storageReady, setStorageReady] = useState(false);
 
+  const [sandboxCard, setSandboxCard] = useState<SandboxCard | null>(null);
+  const [cardLoading, setCardLoading] = useState(false);
+  const [cardError, setCardError] = useState<string | null>(null);
+
   useEffect(() => {
     const savedEvm = window.localStorage.getItem(EVM_STORAGE_KEY) || "";
     if (isEvmAddress(savedEvm)) {
@@ -290,8 +300,8 @@ function TapmoDashboard({
   const linkedValue = evmValue + solanaValue;
   const isLoading = portfolioLoading || solanaLoading;
 
-  const cardNumber = connected
-    ? "••••  ••••  ••••  4827"
+  const cardNumber = sandboxCard?.lastFour
+    ? `••••  ••••  ••••  ${sandboxCard.lastFour}`
     : "••••  ••••  ••••  ••••";
 
   const chainStatus = useMemo(() => {
@@ -344,6 +354,35 @@ function TapmoDashboard({
     setLinkedSolanaAddress("");
     setSolanaDraft("");
     setSolanaAddressError("");
+  }
+
+  async function issueSandboxCard() {
+    if (!connected || cardLoading || sandboxCard) return;
+
+    setCardLoading(true);
+    setCardError(null);
+
+    try {
+      const response = await fetch("/api/marqeta/bootstrap", {
+        method: "POST",
+      });
+
+      const body = await response.json();
+
+      if (!response.ok) {
+        throw new Error(body?.error || "Could not issue Marqeta sandbox card.");
+      }
+
+      setSandboxCard(body.card as SandboxCard);
+    } catch (error) {
+      setCardError(
+        error instanceof Error
+          ? error.message
+          : "Could not issue Marqeta sandbox card."
+      );
+    } finally {
+      setCardLoading(false);
+    }
   }
 
   return (
@@ -616,7 +655,9 @@ function TapmoDashboard({
           <div className={"card " + (frozen ? "cardFrozen" : "")}>
             <div className="cardTop">
               <div className="cardLogo">tapmo</div>
-              <span className="cardBadge">VIRTUAL · DEMO</span>
+              <span className="cardBadge">
+                {sandboxCard ? "MARQETA · SANDBOX" : "VIRTUAL · DEMO"}
+              </span>
             </div>
 
             <div className="cardNumber">{cardNumber}</div>
@@ -634,7 +675,13 @@ function TapmoDashboard({
               </div>
               <div>
                 <span>STATUS</span>
-                <strong>{connected ? "SANDBOX" : "—"}</strong>
+                <strong>
+                  {sandboxCard
+                    ? (sandboxCard.state || "SANDBOX").toUpperCase()
+                    : connected
+                      ? "NOT ISSUED"
+                      : "—"}
+                </strong>
               </div>
             </div>
 
@@ -642,17 +689,33 @@ function TapmoDashboard({
           </div>
 
           <div className="actions">
-            <button className="darkButton" disabled={!connected}>
-              Add to Apple Wallet
+            <button
+              className="darkButton"
+              disabled={!connected || cardLoading || Boolean(sandboxCard)}
+              onClick={() => void issueSandboxCard()}
+            >
+              {sandboxCard
+                ? `Sandbox card •••• ${sandboxCard.lastFour || ""}`
+                : cardLoading
+                  ? "Issuing sandbox card…"
+                  : "Issue Marqeta sandbox card"}
             </button>
             <button
               className="secondary"
-              disabled={!connected}
+              disabled={!sandboxCard}
               onClick={() => setFrozen((value) => !value)}
             >
               {frozen ? "Unfreeze card" : "Freeze card"}
             </button>
           </div>
+
+          {cardError && (
+            <div className="cardError">{cardError}</div>
+          )}
+
+          <button className="applePlaceholder" disabled>
+            Add to Apple Wallet · production issuer required
+          </button>
         </div>
 
         <div className="activityPanel">

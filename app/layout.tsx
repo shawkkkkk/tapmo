@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import TapmoPrivyProvider from "@/components/TapmoPrivyProvider";
 
 export const metadata: Metadata = {
   title: "Tapmo",
@@ -13,7 +14,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <TapmoPrivyProvider>{children}</TapmoPrivyProvider>
+      </body>
     </html>
   );
 }
